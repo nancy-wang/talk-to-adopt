@@ -35,35 +35,35 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-serif: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 1rem;
-  /* Warm cream + sage palette — calming, trustworthy, accessible */
-  --background: oklch(0.985 0.012 90);
-  --foreground: oklch(0.25 0.025 150);
+  --radius: 0.5rem;
+  /* Binti blue palette — professional, trustworthy, accessible */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.18 0.03 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.025 150);
+  --card-foreground: oklch(0.18 0.03 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.025 150);
-  --primary: oklch(0.46 0.085 155);          /* deep sage */
-  --primary-foreground: oklch(0.985 0.012 90);
-  --secondary: oklch(0.93 0.025 95);          /* warm cream */
-  --secondary-foreground: oklch(0.3 0.03 150);
-  --muted: oklch(0.95 0.018 95);
-  --muted-foreground: oklch(0.5 0.02 150);
-  --accent: oklch(0.78 0.12 55);              /* warm terracotta */
-  --accent-foreground: oklch(0.2 0.02 60);
-  --destructive: oklch(0.58 0.18 28);
-  --destructive-foreground: oklch(0.985 0.012 90);
-  --success: oklch(0.62 0.13 155);
-  --success-foreground: oklch(0.985 0.012 90);
-  --warning: oklch(0.78 0.14 75);
-  --warning-foreground: oklch(0.25 0.04 70);
-  --border: oklch(0.88 0.018 95);
-  --input: oklch(0.9 0.018 95);
-  --ring: oklch(0.46 0.085 155);
+  --popover-foreground: oklch(0.18 0.03 260);
+  --primary: oklch(0.50 0.22 261);            /* Binti blue */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.025 261);         /* light blue-gray */
+  --secondary-foreground: oklch(0.25 0.04 261);
+  --muted: oklch(0.965 0.012 261);
+  --muted-foreground: oklch(0.48 0.03 261);
+  --accent: oklch(0.62 0.22 261);             /* lighter Binti blue */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.22 28);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.58 0.16 155);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.75 0.16 75);
+  --warning-foreground: oklch(0.22 0.04 70);
+  --border: oklch(0.88 0.015 261);
+  --input: oklch(0.91 0.015 261);
+  --ring: oklch(0.50 0.22 261);
 }
 
 @layer base {
@@ -75,7 +75,7 @@
     font-size: 17px;
     line-height: 1.55;
   }
-  h1, h2, h3 { font-family: var(--font-serif); letter-spacing: -0.01em; }
+  h1, h2, h3 { font-family: var(--font-sans); font-weight: 700; letter-spacing: -0.02em; }
 }
 
 @keyframes pulse-ring {
