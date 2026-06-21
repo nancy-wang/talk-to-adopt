@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Mic, FileText, ShieldCheck, Languages, CheckCircle2, AlertTriangle,
   Upload, Type, ChevronRight, ChevronLeft, Volume2, Pause, Play,
-  User, Baby, Phone, Lock, FileCheck, X,
+  User, Baby, Phone, Lock, FileCheck, X, Loader2, WifiOff,
 } from "lucide-react";
+import { useVoice, speak, stopSpeaking } from "../hooks/useVoice";
+import { extractFields } from "../lib/extract-fields";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -311,9 +313,7 @@ function App() {
         {step === "landing" && (
           <Landing
             lang={lang} setLang={setLang}
-            hasSession={!!saved && saved.step !== "landing"}
             onStart={() => { clearSession(); setAnswers({}); setUploaded({}); setSkipped([]); setStep("upload"); }}
-            onResume={() => setStep(saved!.step)}
           />
         )}
         {step === "upload" && (
@@ -359,16 +359,12 @@ function TopBar({ step, lang, setLang, onHome }: {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
-        <button onClick={onHome} className="flex items-center gap-2.5 text-left">
-          <div className="grid h-8 w-8 place-items-center rounded-md bg-primary font-bold text-sm tracking-tight text-primary-foreground">
-            B
-          </div>
-          <div className="leading-tight">
-            <div className="text-base font-bold tracking-tight text-foreground">binti</div>
-            <div className="text-[11px] text-muted-foreground">
-              {lang === "en" ? "Adoption Services" : "Servicios de Adopción"}
-            </div>
-          </div>
+        <button onClick={onHome} className="flex items-center gap-2 text-left">
+          {/* Binti wordmark — navy Montserrat matching binti.com */}
+          <span className="font-serif text-xl font-bold tracking-tight text-[#00285f]">binti</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            · {lang === "en" ? "Adoption Services" : "Servicios de Adopción"}
+          </span>
         </button>
         {step !== "landing" && step !== "confirm" && (
           <div className="hidden flex-1 px-8 md:block">
@@ -409,46 +405,32 @@ function TopBar({ step, lang, setLang, onHome }: {
 
 // ── Landing ─────────────────────────────────────────────────────────────────
 
-function Landing({ lang, setLang, hasSession, onStart, onResume }: {
-  lang: Lang; setLang: (l: Lang) => void;
-  hasSession: boolean; onStart: () => void; onResume: () => void;
+function Landing({ lang, setLang, onStart }: {
+  lang: Lang; setLang: (l: Lang) => void; onStart: () => void;
 }) {
   const c = t[lang];
   return (
     <section className="pt-8 md:pt-16">
       <div className="grid items-center gap-12 md:grid-cols-[1.15fr_1fr]">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+          {/* Tagline pill — navy/blue gradient matching binti.com hero */}
+          <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-[#00285f]">
             {c.tagline}
           </div>
-          <h1 className="mt-4 whitespace-pre-line text-5xl font-extrabold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+          {/* h1 picks up Montserrat + navy from @layer base */}
+          <h1 className="mt-4 whitespace-pre-line text-5xl font-extrabold leading-[1.08] tracking-tight md:text-6xl">
             {c.title}
           </h1>
           <p className="mt-5 max-w-xl text-lg text-muted-foreground">{c.sub}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {hasSession ? (
-              <>
-                <button onClick={onResume}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">
-                  <ChevronRight className="h-4 w-4" /> {c.resume}
-                </button>
-                <button onClick={onStart}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-5 py-3 text-sm font-medium hover:bg-secondary">
-                  {c.start}
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={onStart}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">
-                  <Mic className="h-4 w-4" /> {c.start}
-                </button>
-                <button className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-5 py-3 text-sm font-medium hover:bg-secondary">
-                  {c.learn}
-                </button>
-              </>
-            )}
+            <button onClick={onStart}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#006cff] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0058d6]">
+              <Mic className="h-4 w-4" /> {c.start}
+            </button>
+            <button className="inline-flex items-center gap-2 rounded-lg border border-[#006cff] px-5 py-3 text-sm font-semibold text-[#006cff] transition hover:bg-secondary">
+              {c.learn}
+            </button>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -457,7 +439,7 @@ function Landing({ lang, setLang, hasSession, onStart, onResume }: {
             <span className="inline-flex items-center gap-2"><Languages className="h-4 w-4 text-primary" /> {c.multilingual}</span>
           </div>
 
-          <div className="mt-8 rounded-lg border border-border bg-card p-4">
+          <div className="mt-8 rounded-xl border border-border bg-card p-4">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{c.pickLang}</div>
             <div className="flex gap-2">
               {([
@@ -465,9 +447,9 @@ function Landing({ lang, setLang, hasSession, onStart, onResume }: {
                 { id: "es" as const, label: "Español", sub: "Voz y texto" },
               ]).map((o) => (
                 <button key={o.id} onClick={() => setLang(o.id)}
-                  className={`flex-1 rounded-md border px-4 py-2.5 text-left transition
-                    ${lang === o.id ? "border-primary bg-primary/8 text-primary" : "border-border hover:bg-secondary"}`}>
-                  <div className="text-sm font-semibold">{o.label}</div>
+                  className={`flex-1 rounded-lg border px-4 py-2.5 text-left transition
+                    ${lang === o.id ? "border-primary bg-secondary text-[#00285f]" : "border-border hover:bg-secondary"}`}>
+                  <div className="text-sm font-bold">{o.label}</div>
                   <div className="text-xs text-muted-foreground">{o.sub}</div>
                 </button>
               ))}
@@ -489,10 +471,10 @@ function Landing({ lang, setLang, hasSession, onStart, onResume }: {
 
 function HowCard({ n, icon, title, body }: { n: string; icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
+    <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_20px_0_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-3">
-        <div className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-primary">{icon}</div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Step {n}</span>
+        <div className="grid h-9 w-9 place-items-center rounded-lg bg-secondary text-primary">{icon}</div>
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Step {n}</span>
       </div>
       <h3 className="mt-4 text-base font-bold text-foreground">{title}</h3>
       <p className="mt-1.5 text-sm text-muted-foreground">{body}</p>
@@ -501,46 +483,285 @@ function HowCard({ n, icon, title, body }: { n: string; icon: React.ReactNode; t
 }
 
 function HeroIllustration({ lang }: { lang: Lang }) {
-  const c = t[lang];
-  return (
-    <div className="relative">
-      <div className="absolute -inset-4 -z-10 rounded-lg bg-gradient-to-br from-primary/8 via-background to-primary/4 blur-2xl" />
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-medium">
-            {lang === "en" ? "Question 4 of 7" : "Pregunta 4 de 7"}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary">
-            <Volume2 className="h-3 w-3" /> {c.readAloud}
-          </span>
+  const [activeStep, setActiveStep] = useState(0);
+  const [animating, setAnimating] = useState(false);
+
+  const steps = lang === "en" ? [
+    {
+      label: "Upload your documents",
+      sub: "Driver's license, pay stubs, school records",
+      icon: <Upload className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { name: "Driver's License", done: true },
+            { name: "Pay Stub", done: true },
+            { name: "School Record", done: false },
+          ].map((d) => (
+            <div key={d.name} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-md ${d.done ? "bg-success/15 text-success" : "bg-secondary text-primary"}`}>
+                {d.done ? <CheckCircle2 className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+              </div>
+              <span className="flex-1 font-medium text-foreground">{d.name}</span>
+              {d.done
+                ? <span className="text-xs text-success font-semibold">Uploaded</span>
+                : <button className="rounded border border-primary px-2 py-0.5 text-xs font-semibold text-primary">Upload</button>
+              }
+            </div>
+          ))}
         </div>
-        <div className="mt-4 rounded-lg bg-secondary p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {lang === "en" ? "We're asking" : "Estamos preguntando"}
-          </div>
-          <p className="mt-2 text-xl font-bold leading-snug text-foreground">
-            {lang === "en"
-              ? '"How many people live in your home right now?"'
-              : '"¿Cuántas personas viven en tu hogar ahora mismo?"'}
-          </p>
+      ),
+    },
+    {
+      label: "We auto-fill your form",
+      sub: "AI reads your documents and extracts key fields",
+      icon: <FileText className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { label: "Full name", value: "Maria Gonzalez", ok: true },
+            { label: "Date of birth", value: "03 / 12 / 1985", ok: true },
+            { label: "Annual income", value: "$72,000", ok: true },
+            { label: "Address", value: "Needs your input", ok: false },
+          ].map((f) => (
+            <div key={f.label} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <span className="text-muted-foreground">{f.label}</span>
+              <span className={`font-semibold ${f.ok ? "text-foreground" : "text-warning"}`}>{f.value}</span>
+            </div>
+          ))}
         </div>
-        <div className="mt-6 flex flex-col items-center">
-          <div className="mic-ring relative grid h-20 w-20 place-items-center rounded-full bg-primary text-primary-foreground shadow-md">
-            <Mic className="h-8 w-8" />
+      ),
+    },
+    {
+      label: "Tell us the rest by voice",
+      sub: "Just speak naturally — no forms to fill",
+      icon: <Mic className="h-5 w-5" />,
+      preview: (
+        <div>
+          <div className="rounded-lg bg-secondary p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">AI is asking</div>
+            <p className="mt-1.5 text-sm font-bold leading-snug text-foreground">
+              "Tell me about the child you're hoping to foster — their age, any medical needs?"
+            </p>
           </div>
-          <div className="mt-4 flex h-9 items-end gap-1">
-            {[0.5, 0.8, 0.3, 0.9, 0.6, 1, 0.4, 0.7, 0.5].map((h, i) => (
-              <span key={i} className="wave-bar block w-1 rounded-full bg-primary/70"
-                style={{ height: `${h * 100}%`, animationDelay: `${i * 0.1}s` }} />
-            ))}
+          <div className="mt-4 flex flex-col items-center">
+            <div className="mic-ring relative grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-md">
+              <Mic className="h-6 w-6" />
+            </div>
+            <div className="mt-3 flex h-6 items-end gap-0.5">
+              {[0.4, 0.9, 0.5, 1, 0.6, 0.8, 0.3, 0.7, 0.5, 0.9, 0.4].map((h, i) => (
+                <span key={i} className="wave-bar block w-1 rounded-full bg-primary/70"
+                  style={{ height: `${h * 100}%`, animationDelay: `${i * 0.09}s` }} />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Listening… speak whenever you're ready</p>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {lang === "en" ? "Listening… speak whenever you're ready" : "Escuchando… habla cuando estés listo"}
-          </p>
-          <button className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline">
-            <Type className="h-3.5 w-3.5" /> {c.typeInstead}
+        </div>
+      ),
+    },
+    {
+      label: "Review and submit",
+      sub: "Check everything, then send with one tap",
+      icon: <FileCheck className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { section: "Your contact info", items: ["(978) 692-2427", "maria@email.com"] },
+            { section: "Household", items: ["4 people · Own home", "$72,000 / year"] },
+            { section: "Child info", items: ["Foster parent", "Asthma; Zoloft"] },
+          ].map((s) => (
+            <div key={s.section} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{s.section}</div>
+              {s.items.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-foreground font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" /> {item}
+                </div>
+              ))}
+            </div>
+          ))}
+          <button className="w-full rounded-lg bg-[#006cff] py-2.5 text-sm font-bold text-white">
+            Submit application →
           </button>
         </div>
+      ),
+    },
+  ] : [
+    {
+      label: "Sube tus documentos",
+      sub: "Licencia, talones de pago, registros escolares",
+      icon: <Upload className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { name: "Licencia de conducir", done: true },
+            { name: "Talón de pago", done: true },
+            { name: "Registro escolar", done: false },
+          ].map((d) => (
+            <div key={d.name} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-md ${d.done ? "bg-success/15 text-success" : "bg-secondary text-primary"}`}>
+                {d.done ? <CheckCircle2 className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+              </div>
+              <span className="flex-1 font-medium text-foreground">{d.name}</span>
+              {d.done
+                ? <span className="text-xs text-success font-semibold">Subido</span>
+                : <button className="rounded border border-primary px-2 py-0.5 text-xs font-semibold text-primary">Subir</button>
+              }
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      label: "Llenamos tu formulario",
+      sub: "La IA lee tus documentos y extrae los datos clave",
+      icon: <FileText className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { label: "Nombre completo", value: "Maria Gonzalez", ok: true },
+            { label: "Fecha de nacimiento", value: "12 / 03 / 1985", ok: true },
+            { label: "Ingresos anuales", value: "$72,000", ok: true },
+            { label: "Dirección", value: "Necesita tu input", ok: false },
+          ].map((f) => (
+            <div key={f.label} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <span className="text-muted-foreground">{f.label}</span>
+              <span className={`font-semibold ${f.ok ? "text-foreground" : "text-warning"}`}>{f.value}</span>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      label: "Cuéntanos el resto por voz",
+      sub: "Habla naturalmente — sin formularios",
+      icon: <Mic className="h-5 w-5" />,
+      preview: (
+        <div>
+          <div className="rounded-lg bg-secondary p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">La IA pregunta</div>
+            <p className="mt-1.5 text-sm font-bold leading-snug text-foreground">
+              "Cuéntame sobre el niño que esperas cuidar — su edad, ¿alguna necesidad médica?"
+            </p>
+          </div>
+          <div className="mt-4 flex flex-col items-center">
+            <div className="mic-ring relative grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-md">
+              <Mic className="h-6 w-6" />
+            </div>
+            <div className="mt-3 flex h-6 items-end gap-0.5">
+              {[0.4, 0.9, 0.5, 1, 0.6, 0.8, 0.3, 0.7, 0.5, 0.9, 0.4].map((h, i) => (
+                <span key={i} className="wave-bar block w-1 rounded-full bg-primary/70"
+                  style={{ height: `${h * 100}%`, animationDelay: `${i * 0.09}s` }} />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Escuchando… habla cuando estés listo</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: "Revisa y envía",
+      sub: "Verifica todo y envía con un toque",
+      icon: <FileCheck className="h-5 w-5" />,
+      preview: (
+        <div className="space-y-2">
+          {[
+            { section: "Tu contacto", items: ["(978) 692-2427", "maria@email.com"] },
+            { section: "Hogar", items: ["4 personas · Casa propia", "$72,000 / año"] },
+            { section: "Info del niño", items: ["Padre de acogida", "Asma; Zoloft"] },
+          ].map((s) => (
+            <div key={s.section} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{s.section}</div>
+              {s.items.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-foreground font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" /> {item}
+                </div>
+              ))}
+            </div>
+          ))}
+          <button className="w-full rounded-lg bg-[#006cff] py-2.5 text-sm font-bold text-white">
+            Enviar solicitud →
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const goTo = (i: number) => {
+    if (animating || i === activeStep) return;
+    setAnimating(true);
+    setTimeout(() => { setActiveStep(i); setAnimating(false); }, 180);
+  };
+
+  // Auto-advance every 3.5 s
+  useEffect(() => {
+    const id = setInterval(() => {
+      setAnimating(true);
+      setTimeout(() => {
+        setActiveStep((s) => (s + 1) % steps.length);
+        setAnimating(false);
+      }, 180);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [steps.length]);
+
+  const current = steps[activeStep];
+
+  return (
+    <div className="relative select-none">
+      <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-primary/8 via-background to-primary/4 blur-2xl" />
+
+      {/* Step tabs */}
+      <div className="mb-3 flex gap-2">
+        {steps.map((s, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg text-[11px] font-semibold transition-all
+              ${i === activeStep
+                ? "bg-[#006cff] text-white shadow-sm"
+                : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+              }`}
+          >
+            <span className="shrink-0">{s.icon}</span>
+            <span className="hidden sm:block truncate">{lang === "en" ? `Step ${i + 1}` : `Paso ${i + 1}`}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Card */}
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="border-b border-border bg-secondary/40 px-5 py-3 flex items-center gap-3">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#006cff] text-white">
+            {current.icon}
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground leading-tight">{current.label}</div>
+            <div className="text-xs text-muted-foreground">{current.sub}</div>
+          </div>
+          <div className="ml-auto text-[11px] font-semibold text-muted-foreground">
+            {lang === "en" ? `${activeStep + 1} of ${steps.length}` : `${activeStep + 1} de ${steps.length}`}
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div
+          className="p-4 transition-opacity duration-150"
+          style={{ opacity: animating ? 0 : 1 }}
+        >
+          {current.preview}
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="mt-3 flex justify-center gap-1.5">
+        {steps.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`h-1.5 rounded-full transition-all ${i === activeStep ? "w-6 bg-[#006cff]" : "w-1.5 bg-border"}`}
+          />
+        ))}
       </div>
     </div>
   );
@@ -839,6 +1060,110 @@ const TOPICS: Topic[] = [
   },
 ];
 
+const WORD_TO_NUM: Record<string, number> = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+};
+
+function parseWordOrDigit(word: string): number | null {
+  const n = WORD_TO_NUM[word.toLowerCase()];
+  if (n !== undefined) return n;
+  const d = parseInt(word, 10);
+  return isNaN(d) ? null : d;
+}
+
+function extractFieldsLocally(transcript: string, topicId: string): Record<string, string> {
+  const lo = transcript.toLowerCase();
+  const fields: Record<string, string> = {};
+
+  if (topicId === "contact") {
+    const phone = transcript.match(/(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/);
+    if (phone) fields.phone = phone[1];
+    const email = transcript.match(/[\w.+\-]+@[\w\-]+\.[\w.]+/);
+    if (email) fields.email = email[0];
+  }
+
+  if (topicId === "household") {
+    // Household size — try specific phrases before falling back to bare numbers.
+    // "family of four", "four of us", "four people", "there are four", "we are four"
+    const sizePatterns = [
+      /(?:family|household) of (\w+)/,
+      /(\w+) of us\b/,
+      /there (?:are|is) (\w+) (?:of us|people|persons|members)/,
+      /we are (\w+) (?:people|persons|members)/,
+      /(\w+)\s+(?:people|persons|members)\b/,
+    ];
+    for (const p of sizePatterns) {
+      const m = lo.match(p);
+      if (m) {
+        const n = parseWordOrDigit(m[1]);
+        if (n !== null && n > 0 && n <= 15) { fields.household_size = String(n); break; }
+      }
+    }
+
+    // Housing
+    if (lo.match(/\brent\b/)) fields.housing = "Rent";
+    else if (lo.match(/\bown\b|\bowned\b|\bowner\b/)) fields.housing = "Own";
+    else if (lo.match(/staying with|living with (family|parents|relatives)/)) fields.housing = "Staying with family or friends";
+
+    // Income — anchor to income-related keywords, handle Xk / X thousand / X,XXX
+    // Try all income-adjacent matches, pick the largest plausible one.
+    const incomeRe = /(?:income|earn|mak|salary|annual|yearly|household)[\w\s,.$]*?\b(\d[\d,]*)\s*(k\b|thousand)?|(\d[\d,]*)\s*(k\b|thousand)(?:\s+(?:a year|per year|annually|total|income|household))/gi;
+    let bestIncome = 0;
+    let m: RegExpExecArray | null;
+    while ((m = incomeRe.exec(lo)) !== null) {
+      const raw = (m[1] ?? m[3] ?? "").replace(/,/g, "");
+      const suffix = m[2] ?? m[4] ?? "";
+      let amt = parseInt(raw, 10);
+      if (/k\b|thousand/i.test(suffix)) amt *= 1000;
+      if (amt > bestIncome && amt >= 10000 && amt <= 2_000_000) bestIncome = amt;
+    }
+    if (bestIncome > 0) fields.income = String(bestIncome);
+  }
+
+  if (topicId === "child") {
+    // "my foster son/daughter" → speaker is a foster parent
+    // "my son/daughter" → speaker is a parent
+    // "I'm his/her mother/father/aunt…" → speaker role
+    if (lo.match(/foster\s+(son|daughter|child|kid)/)) fields.relationship = "Foster parent";
+    else if (lo.match(/\bmy\s+son\b|\bmy\s+boy\b/)) fields.relationship = "Parent";
+    else if (lo.match(/\bmy\s+daughter\b|\bmy\s+girl\b/)) fields.relationship = "Parent";
+    else if (lo.match(/\bmother\b|\bmom\b|\bmama\b/)) fields.relationship = "Mother";
+    else if (lo.match(/\bfather\b|\bdad\b|\bpapa\b/)) fields.relationship = "Father";
+    else if (lo.match(/\blegal\s+guardian\b|\bguardian\b/)) fields.relationship = "Legal guardian";
+    else if (lo.match(/\baunt\b/)) fields.relationship = "Aunt";
+    else if (lo.match(/\buncle\b/)) fields.relationship = "Uncle";
+    else if (lo.match(/grandm/)) fields.relationship = "Grandmother";
+    else if (lo.match(/grandf/)) fields.relationship = "Grandfather";
+    else if (lo.match(/\bsibling\b|\bbrother\b|\bsister\b/)) fields.relationship = "Sibling";
+
+    // Medical: collect conditions and medications mentioned
+    if (lo.match(/\bnone\b|no conditions|no medical|no issues|perfectly healthy/)) {
+      fields.medical = "None";
+    } else {
+      const conditions: string[] = [];
+      if (lo.match(/\basthma\b/)) conditions.push("Asthma");
+      if (lo.match(/\binhaler\b/)) conditions.push("uses inhaler");
+      if (lo.match(/\badhd\b|attention deficit/)) conditions.push("ADHD");
+      if (lo.match(/\bautism\b|\basd\b/)) conditions.push("Autism spectrum");
+      if (lo.match(/\bdiabetes\b/)) conditions.push("Diabetes");
+      if (lo.match(/\bdepression\b/)) conditions.push("Depression");
+      if (lo.match(/\banxiety\b/)) conditions.push("Anxiety");
+      if (lo.match(/\bseizure\b|\bepilepsy\b/)) conditions.push("Seizures/Epilepsy");
+      if (lo.match(/\bcerebral palsy\b/)) conditions.push("Cerebral palsy");
+      if (lo.match(/\bdown syndrome\b/)) conditions.push("Down syndrome");
+      if (lo.match(/\beczema\b/)) conditions.push("Eczema");
+      // Medications by name
+      const meds = lo.match(/\b(zoloft|sertraline|prozac|fluoxetine|adderall|ritalin|concerta|lexapro|risperdal|abilify|depakote|lamictal|seroquel|metformin|insulin)\b/gi);
+      if (meds) conditions.push(...[...new Set(meds)].map(m => m.charAt(0).toUpperCase() + m.slice(1)));
+      if (conditions.length > 0) fields.medical = conditions.join("; ");
+    }
+  }
+
+  return fields;
+}
+
 function Interview({ lang, answers, setAnswers, onNext, onBack }: {
   lang: Lang;
   answers: Record<string, string>;
@@ -847,6 +1172,8 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
   onBack: () => void;
 }) {
   const c = t[lang];
+  const voice = useVoice();
+
   const [topicIdx, setTopicIdx] = useState(0);
   const [phase, setPhase] = useState<TopicPhase>("idle");
   const [useText, setUseText] = useState(false);
@@ -856,6 +1183,9 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
   const [editVal, setEditVal] = useState("");
   const [followupIdx, setFollowupIdx] = useState(0);
   const [followupVal, setFollowupVal] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const hasReadAloud = useRef(false);
 
   const topic = TOPICS[topicIdx];
   const total = TOPICS.length;
@@ -863,14 +1193,69 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
   const guidance = lang === "en" ? topic.guidance_en : topic.guidance_es;
   const section = lang === "en" ? topic.section_en : topic.section_es;
 
+  // Auto-read question when topic changes
+  useEffect(() => {
+    hasReadAloud.current = false;
+  }, [topicIdx]);
+
+  const readQuestion = () => {
+    speak(q, lang);
+    hasReadAloud.current = true;
+  };
+
   const getMissing = (vals: Record<string, string>) =>
     topic.fields.filter((f) => f.required && !vals[f.id]);
 
-  const initExtraction = () => {
-    const vals: Record<string, string> = {};
-    for (const f of topic.fields) vals[f.id] = f.value;
-    setFieldValues(vals);
-    setPhase("extracted");
+  const startListening = () => {
+    voice.reset();
+    setExtractError("");
+    voice.start(lang);
+    setPhase("listening");
+  };
+
+  const stopAndExtract = async (overrideTranscript?: string) => {
+    // Capture BEFORE stop() — stop() clears interimTranscript via setState,
+    // and continuous recognition often never fires isFinal until stopped,
+    // so voice.transcript alone may be empty even after a full utterance.
+    const captured = overrideTranscript
+      ?? [voice.transcript, voice.interimTranscript].filter(Boolean).join(" ").trim();
+    voice.stop();
+    if (!captured) {
+      setPhase("idle");
+      return;
+    }
+    setExtracting(true);
+    setExtractError("");
+    try {
+      const result = await extractFields({ data: { transcript: captured, topicId: topic.id, lang } });
+      if (result.error) {
+        // Server extraction failed — try regex fallback, then ask user to fill manually
+        const fallback = extractFieldsLocally(captured, topic.id);
+        const hasFallback = Object.values(fallback).some(Boolean);
+        setFieldValues(hasFallback ? fallback : Object.fromEntries(topic.fields.map((f) => [f.id, ""])));
+        if (!hasFallback) {
+          setExtractError(
+            result.error.includes("not configured")
+              ? (lang === "en" ? "AI extraction unavailable — please fill in the fields manually." : "Extracción IA no disponible — completa los campos manualmente.")
+              : (lang === "en" ? "Couldn't extract fields. Please fill them in." : "No se pudieron extraer los campos. Por favor complétalos."),
+          );
+        }
+      } else {
+        // Merge AI result with regex fallback — AI wins where it found something
+        const fallback = extractFieldsLocally(captured, topic.id);
+        const merged: Record<string, string> = { ...fallback, ...Object.fromEntries(Object.entries(result.fields).filter(([, v]) => v)) };
+        setFieldValues(merged);
+      }
+      setPhase("extracted");
+    } catch {
+      // Network/server error — still try regex
+      const fallback = extractFieldsLocally(captured, topic.id);
+      setFieldValues(Object.keys(fallback).length ? fallback : Object.fromEntries(topic.fields.map((f) => [f.id, ""])));
+      setExtractError(lang === "en" ? "Couldn't reach AI — showing what we could detect automatically." : "No se pudo conectar con IA — mostrando lo que se detectó.");
+      setPhase("extracted");
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -898,6 +1283,8 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
   };
 
   const persist = (vals: Record<string, string>) => {
+    stopSpeaking();
+    voice.reset();
     const next = { ...answers };
     for (const [k, v] of Object.entries(vals)) { if (v) next[k] = v; }
     setAnswers(next);
@@ -907,31 +1294,43 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
       setFieldValues({});
       setUseText(false);
       setTextInput("");
+      setExtractError("");
     } else {
       onNext();
     }
   };
+
+  const isListening = voice.status === "listening";
 
   return (
     <StepShell title={c.interviewTitle} subtitle={c.interviewSubtitle}>
       {/* Progress */}
       <div className="mb-3 flex items-center justify-between text-sm">
         <span className="font-semibold text-foreground">{section}</span>
-        <span className="text-muted-foreground">
-          {topicIdx + 1} {c.answeredOf} {total}
-        </span>
+        <span className="text-muted-foreground">{topicIdx + 1} {c.answeredOf} {total}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
         <div className="h-full rounded-full bg-primary transition-all"
           style={{ width: `${((topicIdx + (phase === "idle" ? 0.1 : 0.7)) / total) * 100}%` }} />
       </div>
 
+      {/* ── Extracting spinner overlay ── */}
+      {extracting && (
+        <div className="mt-5 flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-foreground">
+            {lang === "en" ? "Analyzing your response…" : "Analizando tu respuesta…"}
+          </p>
+        </div>
+      )}
+
       {/* ── Prompt + mic/text (idle + listening) ── */}
-      {(phase === "idle" || phase === "listening") && (
+      {!extracting && (phase === "idle" || phase === "listening") && (
         <div className="mt-5 rounded-xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Volume2 className="h-3.5 w-3.5" />
-            <button className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 hover:bg-muted">
+            <button onClick={readQuestion}
+              className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 hover:bg-muted">
               <Play className="h-3 w-3" /> {c.readAloud}
             </button>
           </div>
@@ -952,14 +1351,22 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
             </ul>
           </div>
 
+          {/* Voice error banner */}
+          {voice.status === "error" && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <WifiOff className="mt-0.5 h-4 w-4 shrink-0" />
+              {voice.errorMsg}
+            </div>
+          )}
+
           {/* Voice input */}
           {!useText && (
             <div className="mt-6 flex flex-col items-center" aria-live="polite" aria-atomic="true">
-              {phase === "idle" ? (
+              {!isListening ? (
                 <>
-                  <button onClick={() => setPhase("listening")}
+                  <button onClick={startListening} disabled={voice.status === "error"}
                     aria-label={lang === "en" ? "Start speaking" : "Empezar a hablar"}
-                    className="relative grid h-20 w-20 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:opacity-90">
+                    className="relative grid h-20 w-20 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:opacity-90 disabled:opacity-50">
                     <Mic className="h-8 w-8" />
                   </button>
                   <p className="mt-3 text-sm font-medium text-foreground">
@@ -968,7 +1375,7 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
                 </>
               ) : (
                 <>
-                  <button onClick={initExtraction}
+                  <button onClick={() => stopAndExtract()}
                     aria-label={lang === "en" ? "Stop recording" : "Detener grabación"}
                     className="mic-ring relative grid h-20 w-20 place-items-center rounded-full bg-primary text-primary-foreground shadow-md">
                     <Pause className="h-8 w-8" />
@@ -979,16 +1386,27 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
                         style={{ height: `${h * 100}%`, animationDelay: `${k * 0.08}s` }} />
                     ))}
                   </div>
+                  {/* Live transcript preview */}
+                  {(voice.transcript || voice.interimTranscript) && (
+                    <div className="mt-3 w-full max-w-sm rounded-lg bg-secondary px-4 py-3 text-sm">
+                      <span className="text-foreground">{voice.transcript}</span>
+                      {voice.interimTranscript && (
+                        <span className="text-muted-foreground"> {voice.interimTranscript}</span>
+                      )}
+                    </div>
+                  )}
                   <p className="mt-2 text-sm text-muted-foreground">{c.listeningPrompt}</p>
-                  <button onClick={initExtraction} className="mt-2 text-sm font-medium text-primary hover:underline">
+                  <button onClick={() => stopAndExtract()} className="mt-2 text-sm font-medium text-primary hover:underline">
                     {c.doneSpeaking}
                   </button>
                 </>
               )}
-              <button onClick={() => setUseText(true)}
-                className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-                <Type className="h-3.5 w-3.5" /> {c.typeInstead}
-              </button>
+              {!isListening && (
+                <button onClick={() => { setUseText(true); voice.reset(); }}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                  <Type className="h-3.5 w-3.5" /> {c.typeInstead}
+                </button>
+              )}
             </div>
           )}
 
@@ -996,7 +1414,7 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
           {useText && (
             <div className="mt-5">
               <textarea value={textInput} onChange={(e) => setTextInput(e.target.value)}
-                rows={3} autoFocus
+                rows={4} autoFocus
                 placeholder={lang === "en" ? "Type your answer here…" : "Escribe tu respuesta aquí…"}
                 className="w-full rounded-md border border-input bg-background px-4 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
@@ -1005,7 +1423,8 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                   <Mic className="h-3.5 w-3.5" /> {c.useVoice}
                 </button>
-                <button onClick={() => { if (textInput.trim()) initExtraction(); }} disabled={!textInput.trim()}
+                <button onClick={() => { if (textInput.trim()) stopAndExtract(textInput.trim()); }}
+                  disabled={!textInput.trim()}
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40">
                   {lang === "en" ? "Continue" : "Continuar"} <ChevronRight className="h-4 w-4" />
                 </button>
@@ -1016,7 +1435,7 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
       )}
 
       {/* ── Extracted fields ── */}
-      {phase === "extracted" && (
+      {!extracting && phase === "extracted" && (
         <div className="mt-5 rounded-xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 font-semibold text-foreground">
             <CheckCircle2 className="h-4 w-4 text-success" />
@@ -1025,6 +1444,23 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
           <p className="mt-1 text-xs text-muted-foreground">
             {lang === "en" ? "Edit anything that doesn't look right." : "Edita lo que no se vea bien."}
           </p>
+
+          {extractError && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning-foreground">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              {extractError}
+            </div>
+          )}
+
+          {/* Transcript used */}
+          {voice.transcript && (
+            <div className="mt-3 rounded-md bg-secondary/60 px-4 py-3 text-sm">
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {lang === "en" ? "You said" : "Dijiste"}
+              </div>
+              <p className="italic text-foreground">"{voice.transcript}"</p>
+            </div>
+          )}
 
           <div className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border">
             {topic.fields.map((f) => {
@@ -1049,7 +1485,8 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
                         className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
                         {c.ocrSave}
                       </button>
-                      <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                      <button onClick={() => setEditingId(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground">
                         {c.ocrCancel}
                       </button>
                     </>
@@ -1061,9 +1498,11 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
                           ? <div className="mt-0.5 text-sm font-medium">{val}</div>
                           : <div className="mt-0.5 text-sm italic text-muted-foreground">
                               {lang === "en" ? "Not found" : "No encontrado"}
-                              {f.required && <span className="ml-1 text-destructive">
-                                · {lang === "en" ? "required" : "requerido"}
-                              </span>}
+                              {f.required && (
+                                <span className="ml-1 text-destructive">
+                                  · {lang === "en" ? "required" : "requerido"}
+                                </span>
+                              )}
                             </div>
                         }
                       </div>
@@ -1089,7 +1528,7 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
               <CheckCircle2 className="h-4 w-4" />
               {lang === "en" ? "That looks right" : "Eso está bien"}
             </button>
-            <button onClick={() => { setPhase("listening"); setUseText(false); }}
+            <button onClick={() => { setPhase("idle"); voice.reset(); }}
               className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium">
               {c.tryAgain}
             </button>
@@ -1098,7 +1537,7 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
       )}
 
       {/* ── Follow-up for missing required fields ── */}
-      {phase === "followup" && (() => {
+      {!extracting && phase === "followup" && (() => {
         const missing = getMissing(fieldValues);
         const field = missing[followupIdx];
         if (!field) return null;
@@ -1111,13 +1550,14 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
               <AlertTriangle className="h-3.5 w-3.5" />
               {lang === "en" ? "One more thing" : "Solo una cosa más"}
               {missing.length > 1 && (
-                <span className="font-normal text-muted-foreground">
+                <span className="ml-1 font-normal text-muted-foreground">
                   ({followupIdx + 1} {lang === "en" ? "of" : "de"} {missing.length})
                 </span>
               )}
             </div>
             <p className="mt-3 text-lg font-bold leading-snug text-foreground">{fq}</p>
-            <input autoFocus type="text" value={followupVal} onChange={(e) => setFollowupVal(e.target.value)}
+            <input autoFocus type="text" value={followupVal}
+              onChange={(e) => setFollowupVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && followupVal.trim()) handleFollowupSave(); }}
               placeholder={lang === "en" ? "Type your answer…" : "Escribe tu respuesta…"}
               className="mt-4 w-full rounded-md border border-input bg-background px-4 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -1138,7 +1578,10 @@ function Interview({ lang, answers, setAnswers, onNext, onBack }: {
 
       <div className="mt-4 flex items-center justify-between">
         <button
-          onClick={topicIdx === 0 ? onBack : () => { setTopicIdx(topicIdx - 1); setPhase("idle"); setFieldValues({}); }}
+          onClick={() => {
+            stopSpeaking(); voice.reset();
+            if (topicIdx === 0) { onBack(); } else { setTopicIdx(topicIdx - 1); setPhase("idle"); setFieldValues({}); }
+          }}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
           <ChevronLeft className="h-4 w-4" /> {c.back}
         </button>
@@ -1435,13 +1878,15 @@ function NavRow({ lang, onBack, onNext, nextLabel, nextDisabled }: {
 
 function Footer({ lang }: { lang: Lang }) {
   return (
-    <footer className="border-t border-border bg-card/50">
-      <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-3 px-5 py-6 text-sm text-muted-foreground md:flex-row md:items-center">
-        <div>© {new Date().getFullYear()} Binti · {lang === "en" ? "Adoption Services" : "Servicios de Adopción"}</div>
+    <footer className="bg-[#00285f]">
+      <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-3 px-5 py-6 text-sm text-white/70 md:flex-row md:items-center">
+        <div className="font-semibold text-white">
+          binti <span className="font-normal text-white/60">· © {new Date().getFullYear()} · {lang === "en" ? "Adoption Services" : "Servicios de Adopción"}</span>
+        </div>
         <div className="flex gap-5">
-          <a className="hover:text-foreground">{lang === "en" ? "Privacy" : "Privacidad"}</a>
-          <a className="hover:text-foreground">{lang === "en" ? "Accessibility" : "Accesibilidad"}</a>
-          <a className="hover:text-foreground">{lang === "en" ? "Get help" : "Obtener ayuda"}</a>
+          <a className="hover:text-white">{lang === "en" ? "Privacy" : "Privacidad"}</a>
+          <a className="hover:text-white">{lang === "en" ? "Accessibility" : "Accesibilidad"}</a>
+          <a className="hover:text-white">{lang === "en" ? "Get help" : "Obtener ayuda"}</a>
         </div>
       </div>
     </footer>

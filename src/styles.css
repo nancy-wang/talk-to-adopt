@@ -10,7 +10,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,36 +34,48 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  /* Lato — body; Montserrat — headings/display */
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Montserrat", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.5rem;
-  /* Binti blue palette — professional, trustworthy, accessible */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.18 0.03 260);
+  --radius: 0.5rem;                           /* 8px — matches binti.com button radius */
+
+  --background: oklch(1 0 0);                 /* #ffffff */
+  --foreground: oklch(0.15 0 0);              /* #1d1d1d — Binti body text */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.03 260);
+  --card-foreground: oklch(0.15 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.03 260);
-  --primary: oklch(0.50 0.22 261);            /* Binti blue */
+  --popover-foreground: oklch(0.15 0 0);
+
+  --primary: oklch(0.56 0.24 261);            /* #006cff — Binti primary blue */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.025 261);         /* light blue-gray */
-  --secondary-foreground: oklch(0.25 0.04 261);
-  --muted: oklch(0.965 0.012 261);
-  --muted-foreground: oklch(0.48 0.03 261);
-  --accent: oklch(0.62 0.22 261);             /* lighter Binti blue */
+
+  --secondary: oklch(0.94 0.04 264);          /* #e0ebff — Binti light blue bg */
+  --secondary-foreground: oklch(0.22 0.10 264); /* #00285f navy */
+
+  --muted: oklch(0.97 0.01 264);
+  --muted-foreground: oklch(0.42 0 0);        /* #555555 — Binti secondary text */
+
+  --accent: oklch(0.74 0.19 62);              /* #ff9900 — Binti orange accent */
   --accent-foreground: oklch(1 0 0);
+
+  --navy: oklch(0.22 0.10 264);               /* #00285f — Binti dark navy */
+  --navy-foreground: oklch(1 0 0);
+
   --destructive: oklch(0.58 0.22 28);
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.58 0.16 155);
+  --success: oklch(0.55 0.16 155);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.75 0.16 75);
   --warning-foreground: oklch(0.22 0.04 70);
-  --border: oklch(0.88 0.015 261);
-  --input: oklch(0.91 0.015 261);
-  --ring: oklch(0.50 0.22 261);
+
+  --border: oklch(0.93 0.005 264);            /* #f4f4f4 — Binti card border */
+  --input: oklch(0.92 0.008 264);
+  --ring: oklch(0.56 0.24 261);
 }
 
 @layer base {
@@ -72,10 +84,17 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-size: 17px;
-    line-height: 1.55;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3 { font-family: var(--font-sans); font-weight: 700; letter-spacing: -0.02em; }
+  /* Montserrat for all headings — matches binti.com */
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: oklch(0.22 0.10 264);              /* #00285f navy for headings */
+  }
 }
 
 @keyframes pulse-ring {
