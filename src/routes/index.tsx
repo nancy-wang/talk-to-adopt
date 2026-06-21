@@ -1085,40 +1085,83 @@ function extractFieldsLocally(transcript: string, topicId: string): Record<strin
   }
 
   if (topicId === "household") {
-    // Household size — try specific phrases before falling back to bare numbers.
-    // "family of four", "four of us", "four people", "there are four", "we are four"
-    const sizePatterns = [
-      /(?:family|household) of (\w+)/,
-      /(\w+) of us\b/,
-      /there (?:are|is) (\w+) (?:of us|people|persons|members)/,
-      /we are (\w+) (?:people|persons|members)/,
-      /(\w+)\s+(?:people|persons|members)\b/,
-    ];
-    for (const p of sizePatterns) {
-      const m = lo.match(p);
-      if (m) {
-        const n = parseWordOrDigit(m[1]);
-        if (n !== null && n > 0 && n <= 15) { fields.household_size = String(n); break; }
+    // Household size — patterns that INCLUDE the speaker ("with me" = +1)
+    let householdSize: number | null = null;
+
+    // "X people live with me" / "X of them live with me" → X+1 total
+    const withMeMatch = lo.match(/(\w+)\s+(?:people|persons|members|of them|individuals)\s+(?:live|living|stay|staying)\s+with me/);
+    if (withMeMatch) {
+      const n = parseWordOrDigit(withMeMatch[1]);
+      if (n !== null && n >= 0 && n <= 14) householdSize = n + 1;
+    }
+
+    if (householdSize === null) {
+      // "family of four", "four of us", "four people", "there are four", "we are four"
+      const sizePatterns = [
+        /(?:family|household) of (\w+)/,
+        /(\w+) of us\b/,
+        /there (?:are|is) (\w+) (?:of us|people|persons|members)/,
+        /we are (\w+) (?:people|persons|members)/,
+        /(\w+)\s+(?:people|persons|members)\s+(?:in|living)/,
+        /(\w+)\s+(?:people|persons|members)\b/,
+      ];
+      for (const p of sizePatterns) {
+        const m = lo.match(p);
+        if (m) {
+          const n = parseWordOrDigit(m[1]);
+          if (n !== null && n > 0 && n <= 15) { householdSize = n; break; }
+        }
       }
     }
+
+    if (householdSize !== null) fields.household_size = String(householdSize);
 
     // Housing
     if (lo.match(/\brent\b/)) fields.housing = "Rent";
     else if (lo.match(/\bown\b|\bowned\b|\bowner\b/)) fields.housing = "Own";
     else if (lo.match(/staying with|living with (family|parents|relatives)/)) fields.housing = "Staying with family or friends";
 
-    // Income — anchor to income-related keywords, handle Xk / X thousand / X,XXX
-    // Try all income-adjacent matches, pick the largest plausible one.
-    const incomeRe = /(?:income|earn|mak|salary|annual|yearly|household)[\w\s,.$]*?\b(\d[\d,]*)\s*(k\b|thousand)?|(\d[\d,]*)\s*(k\b|thousand)(?:\s+(?:a year|per year|annually|total|income|household))/gi;
+    // Income — find all dollar/number amounts and check surrounding context for period.
+    // Strategy: locate each plausible income number, then inspect ±60 chars for period keywords.
     let bestIncome = 0;
     let m: RegExpExecArray | null;
-    while ((m = incomeRe.exec(lo)) !== null) {
-      const raw = (m[1] ?? m[3] ?? "").replace(/,/g, "");
-      const suffix = m[2] ?? m[4] ?? "";
+
+    const periodMultiplier = (ctx: string): number => {
+      if (/bi-?weekly/.test(ctx)) return 26;
+      if (/weekly|per\s*week|a\s*week/.test(ctx)) return 52;
+      if (/monthly|per\s*month|a\s*month/.test(ctx)) return 12;
+      if (/per\s*year|a\s*year|annual|yearly/.test(ctx)) return 1;
+      return 0; // 0 = no period keyword found
+    };
+
+    // Match any dollar amount or number near income-related keywords
+    const amountRe = /\$?(\d[\d,]*)\s*(k\b|thousand)?/gi;
+    while ((m = amountRe.exec(lo)) !== null) {
+      const raw = m[1].replace(/,/g, "");
+      const suffix = m[2] ?? "";
       let amt = parseInt(raw, 10);
+      if (isNaN(amt) || amt <= 0) continue;
       if (/k\b|thousand/i.test(suffix)) amt *= 1000;
-      if (amt > bestIncome && amt >= 10000 && amt <= 2_000_000) bestIncome = amt;
+      // Only look at plausible income magnitudes (before annualising)
+      if (amt < 100 || amt > 5_000_000) continue;
+
+      // Context: 60 chars before + after the match
+      const start = Math.max(0, m.index - 60);
+      const end = Math.min(lo.length, m.index + m[0].length + 60);
+      const ctx = lo.slice(start, end);
+
+      // Must be near an income-related word or period keyword
+      const hasIncomeKw = /income|earn|mak|salary|annual|yearly|weekly|monthly|biweekly|bi-weekly|household|pay|paid|paycheck/.test(ctx);
+      if (!hasIncomeKw) continue;
+
+      const mult = periodMultiplier(ctx);
+      // If no period keyword, assume annual only if amt looks annual (≥10k)
+      const annual = mult > 0 ? amt * mult : amt >= 10_000 ? amt : 0;
+      if (annual > bestIncome && annual >= 5_000 && annual <= 5_000_000) {
+        bestIncome = annual;
+      }
     }
+
     if (bestIncome > 0) fields.income = String(bestIncome);
   }
 

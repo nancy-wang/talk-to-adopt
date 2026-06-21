@@ -22,12 +22,20 @@ const TOPIC_SCHEMAS: Record<string, { fields: string; instructions: string }> = 
   household: {
     fields: `{ "household_size": string | null, "housing": string | null, "income": string | null }`,
     instructions: `Extract household information.
-- household_size: TOTAL number of people living in the home as a digit string (e.g. "4").
+- household_size: TOTAL number of people living in the home as a digit string.
   Use the stated total — do NOT count from ages or individual people mentioned.
   "family of four" → "4". Ignore ages like "my sister is 19" — 19 is an age, not the household size.
+  IMPORTANT: "X people live with me" means X others PLUS the speaker = X+1 total.
+  Example: "six people live with me" → "7" (six others + the speaker).
 - housing: one of "Rent", "Own", or "Staying with family or friends". "we own the place" → "Own".
-- income: annual household income as a plain number string in dollars (e.g. "200000" for "200k", "42000" for "about 42,000 a year").
-  Convert shorthand: Xk = X*1000, "X thousand" = X*1000. Return null only if income is never mentioned.`,
+- income: ANNUAL household income as a plain number string in dollars.
+  Convert shorthand: Xk = X*1000, "X thousand" = X*1000.
+  IMPORTANT: Convert non-annual periods to annual:
+    weekly → multiply by 52 (e.g. "$2,000 a week" → "104000")
+    bi-weekly → multiply by 26
+    monthly → multiply by 12
+  If the speaker says both weekly and annual, trust the annual figure.
+  Return null only if income is never mentioned.`,
   },
   child: {
     fields: `{ "relationship": string | null, "medical": string | null }`,
