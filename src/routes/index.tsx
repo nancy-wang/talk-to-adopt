@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import {
-  Mic, FileText, ShieldCheck, Languages, CheckCircle2, AlertTriangle,
+  Mic, FileText, ShieldCheck, CheckCircle2, AlertTriangle,
   Upload, Type, ChevronRight, ChevronLeft, Volume2, Pause, Play,
   User, Baby, Phone, Lock, FileCheck, X, Loader2, WifiOff,
 } from "lucide-react";
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
 });
 
 type Step = "landing" | "upload" | "review-ocr" | "interview" | "review-all" | "confirm";
-type Lang = "en" | "es";
+type Lang = "en";
 
 // ── Translations ────────────────────────────────────────────────────────────
 
@@ -139,121 +139,6 @@ const t = {
     confirmStep3sub: "Your family's journey continues from here",
     startNew: "Start a new application",
   },
-  es: {
-    // Landing
-    tagline: "Desarrollado por Binti",
-    title: "Cada niño merece\nun hogar amoroso.",
-    sub: "Estamos aquí para hacer que el papeleo sea la parte fácil. Sube tus documentos, confirma lo que encontramos y responde el resto con tus propias palabras — a tu ritmo.",
-    start: "Comenzar mi solicitud",
-    resume: "Continuar mi solicitud",
-    learn: "Cómo funciona",
-    pickLang: "Elige tu idioma",
-    private: "Privado y seguro",
-    voiceFirst: "Por voz",
-    multilingual: "Inglés y Español",
-    how1title: "Sube tres documentos",
-    how1body: "Tu identificación, comprobante de ingresos e identificación escolar de tu hijo. Solo los leemos para rellenar el formulario — se eliminan de inmediato.",
-    how2title: "Rellenamos lo que podemos",
-    how2body: "Leemos tus documentos y pre-rellenamos el formulario. Revisa todo antes de continuar — nada se guarda sin tu confirmación.",
-    how3title: "Responde a tu manera",
-    how3body: "Algunas preguntas cortas, la mayoría de segundos. Una pregunta abierta te permite hablar libremente con tus propias palabras.",
-    // Upload
-    uploadTitle: "Empecemos con tus documentos",
-    uploadSubtitle: "Solo los leemos una vez para rellenar el formulario, luego los eliminamos. ¿No tienes alguno? Está bien — puedes omitirlo.",
-    uploadDont: "No tengo este documento",
-    uploadSkipped: "Omitido",
-    uploadUploaded: "Subido",
-    uploadContinue: "Continuar",
-    uploadPrivacy: "Tus documentos están cifrados durante la transmisión y se eliminan en cuanto rellenamos el formulario. Los expedientes escolares solo se usan para esta solicitud (FERPA). La información médica se maneja como información de salud protegida (HIPAA).",
-    docIdLabel: "Tu identificación con foto",
-    docIdHint: "Licencia de conducir o pasaporte. Una foto clara del teléfono está bien.",
-    docIncomeLabel: "Comprobante de ingresos",
-    docIncomeHint: "Talón de pago reciente o W-2. Ayuda a verificar tus ingresos y dirección.",
-    docSchoolLabel: "Identificación escolar del niño",
-    docSchoolHint: "Identificación escolar con foto o tarjeta de inscripción. Ayuda a confirmar la información de tu hijo.",
-    // OCR
-    ocrTitle: "Esto es lo que encontramos",
-    ocrSubtitle: "Tómate un momento para revisarlo. Toca Editar en lo que no se vea bien — es fácil de corregir.",
-    ocrNeedLook_one: "campo requiere revisión",
-    ocrNeedLook_other: "campos requieren revisión",
-    ocrInstruction: "Toca Editar en cualquier campo para corregirlo. Amarillo = verificar. Rojo = corregir antes de continuar.",
-    ocrEdit: "Editar",
-    ocrSave: "Guardar",
-    ocrCancel: "Cancelar",
-    ocrContinue: "Todo se ve bien — continuar",
-    ocrConfident: "Confirmado",
-    ocrDoubleCheck: "Verificar",
-    ocrReview: "Por favor corregir",
-    ocrSsnNote: "Solo se muestran los últimos 4 dígitos — tu número completo nunca se muestra ni se almacena.",
-    // Interview
-    interviewTitle: "Solo unas preguntas más",
-    interviewSubtitle: "Estas nos ayudan a entender la situación de tu familia. Tómate tu tiempo — no hay respuestas incorrectas.",
-    voiceQuestion: "Habla tu respuesta",
-    readAloud: "Leer en voz alta",
-    replay: "Repetir",
-    listeningPrompt: "Escuchando… toca para parar cuando hayas terminado",
-    doneSpeaking: "Ya terminé de hablar",
-    iHeard: "Lo que escuché fue",
-    isRight: "¿Suena correcto?",
-    yesRight: "Sí, es correcto",
-    tryAgain: "Intentar de nuevo",
-    typeInstead: "Escribir mi respuesta",
-    preferType: "¿Prefieres escribir?",
-    useVoice: "Usar voz en su lugar",
-    saveContinue: "Guardar y continuar",
-    back: "Atrás",
-    skip: "Omitir por ahora",
-    answeredOf: "de",
-    answeredLabel: "respondidas",
-    // Review
-    reviewTitle: "Casi listo — un último vistazo",
-    reviewSubtitle: "Todo lo que compartiste está abajo. Toca Editar en cualquier sección para hacer un cambio antes de enviar.",
-    sectionApplicant: "Sobre ti",
-    sectionChild: "Sobre",
-    sectionEmergency: "Contacto de emergencia",
-    editSection: "Editar sección",
-    fromDoc: "Del documento",
-    saidAloud: "Dicho en voz alta",
-    needed: "Necesario",
-    signTitle: "Firmar y atestiguar",
-    signBody: "Al enviar, confirmo que la información anterior es correcta a mi mejor saber y entender.",
-    signPlaceholder: "Escribe tu nombre completo para firmar",
-    submit: "Enviar solicitud",
-    // Field labels
-    fieldName: "Nombre legal completo",
-    fieldDob: "Fecha de nacimiento",
-    fieldSsn: "Núm. de Seguro Social",
-    fieldAddress: "Dirección de casa",
-    fieldPhone: "Teléfono",
-    fieldEmail: "Correo electrónico",
-    fieldEmployer: "Empleador",
-    fieldIncome: "Ingresos del hogar",
-    fieldHousing: "Vivienda",
-    fieldHouseholdSize: "Personas en el hogar",
-    fieldChildName: "Nombre completo",
-    fieldChildDob: "Fecha de nacimiento",
-    fieldSchool: "Escuela",
-    fieldGrade: "Grado",
-    fieldRelationship: "Tu relación",
-    fieldMedical: "Salud y necesidades especiales",
-    fieldEmergencyName: "Nombre",
-    // Confirm
-    confirmTitle: "Estás en camino.",
-    confirmSubtitle: "Tu solicitud ha sido recibida. Esto es lo que sigue.",
-    confirmBody: "Enviamos una confirmación a",
-    confirmNum: "Referencia N.°",
-    confirmDocs: "Documentos",
-    confirmVoice: "Respuesta de voz",
-    confirmTime: "Tiempo para completar",
-    confirmNext: "Qué sucede ahora",
-    confirmStep1: "Tu trabajador social revisa tu solicitud",
-    confirmStep1sub: "Generalmente en un plazo de 2 días hábiles",
-    confirmStep2: "Se pondrán en contacto contigo para programar una llamada",
-    confirmStep2sub: "Por teléfono o correo electrónico — como prefieras",
-    confirmStep3: "Juntos planificarán los próximos pasos",
-    confirmStep3sub: "El camino de tu familia continúa desde aquí",
-    startNew: "Iniciar una nueva solicitud",
-  },
 } as const;
 
 // ── Session persistence ─────────────────────────────────────────────────────
@@ -262,7 +147,6 @@ const SESSION_KEY = "binti_adoption_session";
 
 interface SessionData {
   step: Step;
-  lang: Lang;
   answers: Record<string, string>;
   uploaded: Record<string, boolean>;
   skipped: string[];
@@ -293,26 +177,25 @@ function clearSession() {
 
 function App() {
   const saved = loadSession();
+  const lang: Lang = "en";
   const [step, setStep] = useState<Step>(saved?.step ?? "landing");
-  const [lang, setLang] = useState<Lang>(saved?.lang ?? "en");
   const [answers, setAnswers] = useState<Record<string, string>>(saved?.answers ?? {});
   const [uploaded, setUploaded] = useState<Record<string, boolean>>(saved?.uploaded ?? {});
   const [skipped, setSkipped] = useState<string[]>(saved?.skipped ?? []);
 
   useEffect(() => {
     if (step === "landing") return;
-    saveSession({ step, lang, answers, uploaded, skipped });
-  }, [step, lang, answers, uploaded, skipped]);
+    saveSession({ step, answers, uploaded, skipped });
+  }, [step, answers, uploaded, skipped]);
 
   const goHome = () => setStep("landing");
 
   return (
     <div className="min-h-screen">
-      <TopBar step={step} lang={lang} setLang={setLang} onHome={goHome} />
+      <TopBar step={step} onHome={goHome} />
       <main className="mx-auto max-w-5xl px-5 pb-24 pt-6">
         {step === "landing" && (
           <Landing
-            lang={lang} setLang={setLang}
             onStart={() => { clearSession(); setAnswers({}); setUploaded({}); setSkipped([]); setStep("upload"); }}
           />
         )}
@@ -344,27 +227,22 @@ function App() {
 
 // ── Progress stepper ────────────────────────────────────────────────────────
 
-const STEPS: { id: Step; label_en: string; label_es: string }[] = [
-  { id: "upload",     label_en: "Documents", label_es: "Documentos" },
-  { id: "review-ocr", label_en: "Review",    label_es: "Revisión" },
-  { id: "interview",  label_en: "Interview", label_es: "Entrevista" },
-  { id: "review-all", label_en: "Confirm",   label_es: "Confirmar" },
-  { id: "confirm",    label_en: "Done",      label_es: "Listo" },
+const STEPS: { id: Step; label: string }[] = [
+  { id: "upload",     label: "Documents" },
+  { id: "review-ocr", label: "Review" },
+  { id: "interview",  label: "Interview" },
+  { id: "review-all", label: "Confirm" },
+  { id: "confirm",    label: "Done" },
 ];
 
-function TopBar({ step, lang, setLang, onHome }: {
-  step: Step; lang: Lang; setLang: (l: Lang) => void; onHome: () => void;
-}) {
+function TopBar({ step, onHome }: { step: Step; onHome: () => void }) {
   const idx = STEPS.findIndex((s) => s.id === step);
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
         <button onClick={onHome} className="flex items-center gap-2 text-left">
-          {/* Binti wordmark — navy Montserrat matching binti.com */}
           <span className="font-serif text-xl font-bold tracking-tight text-[#00285f]">binti</span>
-          <span className="hidden text-xs text-muted-foreground sm:inline">
-            · {lang === "en" ? "Adoption Services" : "Servicios de Adopción"}
-          </span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">· Adoption Services</span>
         </button>
         {step !== "landing" && step !== "confirm" && (
           <div className="hidden flex-1 px-8 md:block">
@@ -381,7 +259,7 @@ function TopBar({ step, lang, setLang, onHome }: {
                       {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
                     </div>
                     <span className={`text-sm ${active ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                      {lang === "en" ? s.label_en : s.label_es}
+                      {s.label}
                     </span>
                     {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border" />}
                   </li>
@@ -390,14 +268,6 @@ function TopBar({ step, lang, setLang, onHome }: {
             </ol>
           </div>
         )}
-        <div className="flex items-center gap-1 rounded-md border border-border bg-card p-1">
-          {(["en", "es"] as const).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className={`rounded px-3 py-1 text-xs font-medium transition ${lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
       </div>
     </header>
   );
@@ -405,10 +275,8 @@ function TopBar({ step, lang, setLang, onHome }: {
 
 // ── Landing ─────────────────────────────────────────────────────────────────
 
-function Landing({ lang, setLang, onStart }: {
-  lang: Lang; setLang: (l: Lang) => void; onStart: () => void;
-}) {
-  const c = t[lang];
+function Landing({ onStart }: { onStart: () => void }) {
+  const c = t.en;
   return (
     <section className="pt-8 md:pt-16">
       <div className="grid items-center gap-12 md:grid-cols-[1.15fr_1fr]">
@@ -436,28 +304,10 @@ function Landing({ lang, setLang, onStart }: {
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> {c.private}</span>
             <span className="inline-flex items-center gap-2"><Mic className="h-4 w-4 text-primary" /> {c.voiceFirst}</span>
-            <span className="inline-flex items-center gap-2"><Languages className="h-4 w-4 text-primary" /> {c.multilingual}</span>
-          </div>
-
-          <div className="mt-8 rounded-xl border border-border bg-card p-4">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{c.pickLang}</div>
-            <div className="flex gap-2">
-              {([
-                { id: "en" as const, label: "English", sub: "Voice & text" },
-                { id: "es" as const, label: "Español", sub: "Voz y texto" },
-              ]).map((o) => (
-                <button key={o.id} onClick={() => setLang(o.id)}
-                  className={`flex-1 rounded-lg border px-4 py-2.5 text-left transition
-                    ${lang === o.id ? "border-primary bg-secondary text-[#00285f]" : "border-border hover:bg-secondary"}`}>
-                  <div className="text-sm font-bold">{o.label}</div>
-                  <div className="text-xs text-muted-foreground">{o.sub}</div>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
-        <HeroIllustration lang={lang} />
+        <HeroIllustration />
       </div>
 
       <div className="mt-20 grid gap-4 md:grid-cols-3">
@@ -482,11 +332,11 @@ function HowCard({ n, icon, title, body }: { n: string; icon: React.ReactNode; t
   );
 }
 
-function HeroIllustration({ lang }: { lang: Lang }) {
+function HeroIllustration() {
   const [activeStep, setActiveStep] = useState(0);
   const [animating, setAnimating] = useState(false);
 
-  const steps = lang === "en" ? [
+  const steps = [
     {
       label: "Upload your documents",
       sub: "Driver's license, pay stubs, school records",
@@ -585,105 +435,6 @@ function HeroIllustration({ lang }: { lang: Lang }) {
         </div>
       ),
     },
-  ] : [
-    {
-      label: "Sube tus documentos",
-      sub: "Licencia, talones de pago, registros escolares",
-      icon: <Upload className="h-5 w-5" />,
-      preview: (
-        <div className="space-y-2">
-          {[
-            { name: "Licencia de conducir", done: true },
-            { name: "Talón de pago", done: true },
-            { name: "Registro escolar", done: false },
-          ].map((d) => (
-            <div key={d.name} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-              <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-md ${d.done ? "bg-success/15 text-success" : "bg-secondary text-primary"}`}>
-                {d.done ? <CheckCircle2 className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
-              </div>
-              <span className="flex-1 font-medium text-foreground">{d.name}</span>
-              {d.done
-                ? <span className="text-xs text-success font-semibold">Subido</span>
-                : <button className="rounded border border-primary px-2 py-0.5 text-xs font-semibold text-primary">Subir</button>
-              }
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      label: "Llenamos tu formulario",
-      sub: "La IA lee tus documentos y extrae los datos clave",
-      icon: <FileText className="h-5 w-5" />,
-      preview: (
-        <div className="space-y-2">
-          {[
-            { label: "Nombre completo", value: "Maria Gonzalez", ok: true },
-            { label: "Fecha de nacimiento", value: "12 / 03 / 1985", ok: true },
-            { label: "Ingresos anuales", value: "$72,000", ok: true },
-            { label: "Dirección", value: "Necesita tu input", ok: false },
-          ].map((f) => (
-            <div key={f.label} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
-              <span className="text-muted-foreground">{f.label}</span>
-              <span className={`font-semibold ${f.ok ? "text-foreground" : "text-warning"}`}>{f.value}</span>
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      label: "Cuéntanos el resto por voz",
-      sub: "Habla naturalmente — sin formularios",
-      icon: <Mic className="h-5 w-5" />,
-      preview: (
-        <div>
-          <div className="rounded-lg bg-secondary p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">La IA pregunta</div>
-            <p className="mt-1.5 text-sm font-bold leading-snug text-foreground">
-              "Cuéntame sobre el niño que esperas cuidar — su edad, ¿alguna necesidad médica?"
-            </p>
-          </div>
-          <div className="mt-4 flex flex-col items-center">
-            <div className="mic-ring relative grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-md">
-              <Mic className="h-6 w-6" />
-            </div>
-            <div className="mt-3 flex h-6 items-end gap-0.5">
-              {[0.4, 0.9, 0.5, 1, 0.6, 0.8, 0.3, 0.7, 0.5, 0.9, 0.4].map((h, i) => (
-                <span key={i} className="wave-bar block w-1 rounded-full bg-primary/70"
-                  style={{ height: `${h * 100}%`, animationDelay: `${i * 0.09}s` }} />
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">Escuchando… habla cuando estés listo</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      label: "Revisa y envía",
-      sub: "Verifica todo y envía con un toque",
-      icon: <FileCheck className="h-5 w-5" />,
-      preview: (
-        <div className="space-y-2">
-          {[
-            { section: "Tu contacto", items: ["(978) 692-2427", "maria@email.com"] },
-            { section: "Hogar", items: ["4 personas · Casa propia", "$72,000 / año"] },
-            { section: "Info del niño", items: ["Padre de acogida", "Asma; Zoloft"] },
-          ].map((s) => (
-            <div key={s.section} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{s.section}</div>
-              {s.items.map((item) => (
-                <div key={item} className="flex items-center gap-2 text-foreground font-medium">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" /> {item}
-                </div>
-              ))}
-            </div>
-          ))}
-          <button className="w-full rounded-lg bg-[#006cff] py-2.5 text-sm font-bold text-white">
-            Enviar solicitud →
-          </button>
-        </div>
-      ),
-    },
   ];
 
   const goTo = (i: number) => {
@@ -723,7 +474,7 @@ function HeroIllustration({ lang }: { lang: Lang }) {
               }`}
           >
             <span className="shrink-0">{s.icon}</span>
-            <span className="hidden sm:block truncate">{lang === "en" ? `Step ${i + 1}` : `Paso ${i + 1}`}</span>
+            <span className="hidden sm:block truncate">{`Step ${i + 1}`}</span>
           </button>
         ))}
       </div>
@@ -740,7 +491,7 @@ function HeroIllustration({ lang }: { lang: Lang }) {
             <div className="text-xs text-muted-foreground">{current.sub}</div>
           </div>
           <div className="ml-auto text-[11px] font-semibold text-muted-foreground">
-            {lang === "en" ? `${activeStep + 1} of ${steps.length}` : `${activeStep + 1} de ${steps.length}`}
+            {`${activeStep + 1} of ${steps.length}`}
           </div>
         </div>
 
@@ -998,20 +749,6 @@ interface Topic {
 
 const TOPICS: Topic[] = [
   {
-    id: "contact",
-    q_en: "What's the best way to reach you?",
-    q_es: "¿Cuál es la mejor forma de contactarte?",
-    section_en: "About you", section_es: "Sobre ti",
-    guidance_en: ["Your phone number", "Your email address (if you have one)"],
-    guidance_es: ["Tu número de teléfono", "Tu correo electrónico (si tienes uno)"],
-    voiceSample_en: "My number is 510-555-0142 and my email is maria.hernandez@email.com",
-    voiceSample_es: "Mi número es 510-555-0142 y mi correo es maria.hernandez@email.com",
-    fields: [
-      { id: "phone", label_en: "Phone",  label_es: "Teléfono",          value: "(510) 555-0142",            required: true },
-      { id: "email", label_en: "Email",  label_es: "Correo electrónico", value: "maria.hernandez@email.com", required: false },
-    ],
-  },
-  {
     id: "household",
     q_en: "Tell me about your household.",
     q_es: "Cuéntame sobre tu hogar.",
@@ -1076,13 +813,6 @@ function parseWordOrDigit(word: string): number | null {
 function extractFieldsLocally(transcript: string, topicId: string): Record<string, string> {
   const lo = transcript.toLowerCase();
   const fields: Record<string, string> = {};
-
-  if (topicId === "contact") {
-    const phone = transcript.match(/(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/);
-    if (phone) fields.phone = phone[1];
-    const email = transcript.match(/[\w.+\-]+@[\w\-]+\.[\w.]+/);
-    if (email) fields.email = email[0];
-  }
 
   if (topicId === "household") {
     // Household size — patterns that INCLUDE the speaker ("with me" = +1)

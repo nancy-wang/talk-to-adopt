@@ -13,12 +13,6 @@ export interface ExtractResult {
 }
 
 const TOPIC_SCHEMAS: Record<string, { fields: string; instructions: string }> = {
-  contact: {
-    fields: `{ "phone": string | null, "email": string | null }`,
-    instructions: `Extract the speaker's phone number and email address.
-- phone: digits only format is fine, normalize to (XXX) XXX-XXXX if possible
-- email: exact email address as spoken, null if not mentioned`,
-  },
   household: {
     fields: `{ "household_size": string | null, "housing": string | null, "income": string | null }`,
     instructions: `Extract household information.
