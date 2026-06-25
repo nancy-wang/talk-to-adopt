@@ -47,7 +47,7 @@ function FormBuilderPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background overflow-hidden">
       {/* Top bar */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-white/95 px-5 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -74,16 +74,20 @@ function FormBuilderPage() {
       </header>
 
       {stage === "input" && (
+        <div className="flex-1 overflow-y-auto">
         <InputStage
           value={programDescription}
           onChange={setProgramDescription}
           onGenerate={handleGenerate}
           textareaRef={textareaRef}
         />
+        </div>
       )}
 
       {stage === "generating" && (
+        <div className="flex-1 overflow-y-auto">
         <GeneratingStage description={programDescription} />
+        </div>
       )}
 
       {stage === "preview" && schema && (
@@ -303,7 +307,7 @@ function PreviewStage({ schema, onSchemaChange }: { schema: FormSchema; onSchema
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 53px)" }}>
+    <div className="flex flex-1 overflow-hidden min-h-0">
       {/* Form preview — left/main */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-2xl px-6 py-8">
