@@ -1,15 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import {
-  Send,
-  Eye,
-  MessageSquare,
   ChevronRight,
   ChevronDown,
-  Loader2,
   FileText,
-  LayoutTemplate,
   ArrowLeft,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import {
   HOUSING_CONNECT_TEMPLATE,
@@ -17,7 +14,6 @@ import {
   type FormField,
   type Condition,
 } from "../lib/form-schema";
-import { formBuilderChat, type ChatMessage } from "../lib/form-builder-chat";
 
 export const Route = createFileRoute("/form-builder")({
   head: () => ({
@@ -25,92 +21,39 @@ export const Route = createFileRoute("/form-builder")({
       { title: "Form Builder — Binti" },
       {
         name: "description",
-        content:
-          "Chat-based government benefit form builder for NYC Housing Connect.",
+        content: "Government benefit form builder for NYC Housing Connect.",
       },
     ],
   }),
   component: FormBuilderPage,
 });
 
+type Stage = "input" | "generating" | "preview";
+
 function FormBuilderPage() {
-  const [schema, setSchema] = useState<FormSchema>(
-    () => structuredClone(HOUSING_CONNECT_TEMPLATE),
-  );
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: `Hi! I've loaded the NYC Housing Connect lottery application template. It has ${HOUSING_CONNECT_TEMPLATE.sections.length} sections with ${HOUSING_CONNECT_TEMPLATE.sections.reduce((n, s) => n + s.fields.length, 0)} questions.\n\nYou can ask me to:\n• Add, remove, or modify questions\n• Add conditional logic (e.g. "only show X if Y")\n• Reorder sections\n• Add eligibility rules\n• Customize labels and help text\n\nWhat would you like to change?`,
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [view, setView] = useState<"chat" | "preview" | "split">("split");
-  const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [stage, setStage] = useState<Stage>("input");
+  const [programDescription, setProgramDescription] = useState("");
+  const [schema, setSchema] = useState<FormSchema | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || sending) return;
-
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const updated = [...messages, userMsg];
-    setMessages(updated);
-    setInput("");
-    setSending(true);
-
-    try {
-      const result = await formBuilderChat({
-        data: { messages: updated, currentSchema: schema },
-      });
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: result.reply },
-      ]);
-      if (result.updatedSchema) {
-        setSchema(result.updatedSchema);
-      }
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, something went wrong. Please try again.",
-        },
-      ]);
-    } finally {
-      setSending(false);
-      inputRef.current?.focus();
-    }
-  }, [input, sending, messages, schema]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  const handleGenerate = () => {
+    if (!programDescription.trim()) return;
+    setStage("generating");
+    setTimeout(() => {
+      setSchema(structuredClone(HOUSING_CONNECT_TEMPLATE));
+      setStage("preview");
+    }, 2200);
   };
 
-  const totalFields = schema.sections.reduce(
-    (n, s) => n + s.fields.length,
-    0,
-  );
-  const conditionalFields = schema.sections.reduce(
-    (n, s) => n + s.fields.filter((f) => f.condition).length,
-    0,
-  );
-
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-border bg-white px-4 py-2.5">
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-white/95 px-5 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
-          <a href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <a
+            href="/"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" />
           </a>
           <div className="h-5 w-px bg-border" />
@@ -119,207 +62,245 @@ function FormBuilderPage() {
           </span>
           <span className="text-xs text-muted-foreground">· Form Builder</span>
         </div>
-
-        <div className="flex items-center gap-2">
-          {/* Stats */}
-          <div className="hidden items-center gap-3 text-xs text-muted-foreground md:flex">
-            <span>{schema.sections.length} sections</span>
-            <span>·</span>
-            <span>{totalFields} fields</span>
-            {conditionalFields > 0 && (
-              <>
-                <span>·</span>
-                <span>{conditionalFields} conditional</span>
-              </>
-            )}
-          </div>
-          <div className="h-5 w-px bg-border" />
-
-          {/* View toggles — desktop */}
-          <div className="hidden rounded-lg border border-border bg-card p-0.5 md:flex">
-            {(
-              [
-                { id: "chat", icon: MessageSquare, label: "Chat" },
-                { id: "split", icon: LayoutTemplate, label: "Split" },
-                { id: "preview", icon: Eye, label: "Preview" },
-              ] as const
-            ).map((v) => (
-              <button
-                key={v.id}
-                onClick={() => setView(v.id)}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                  view === v.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <v.icon className="h-3.5 w-3.5" />
-                {v.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Status badge */}
-          <StatusBadge status={schema.status} />
-        </div>
+        {stage === "preview" && schema && (
+          <button
+            onClick={() => { setStage("input"); setSchema(null); }}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            ← Start over
+          </button>
+        )}
       </header>
 
-      {/* Mobile tab bar */}
-      <div className="flex border-b border-border md:hidden">
-        {(
-          [
-            { id: "chat", icon: MessageSquare, label: "Chat" },
-            { id: "preview", icon: Eye, label: "Preview" },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setMobileTab(tab.id)}
-            className={`flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-medium transition ${
-              mobileTab === tab.id
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground"
-            }`}
+      {stage === "input" && (
+        <InputStage
+          value={programDescription}
+          onChange={setProgramDescription}
+          onGenerate={handleGenerate}
+          textareaRef={textareaRef}
+        />
+      )}
+
+      {stage === "generating" && (
+        <GeneratingStage description={programDescription} />
+      )}
+
+      {stage === "preview" && schema && (
+        <PreviewStage schema={schema} />
+      )}
+    </div>
+  );
+}
+
+// ── Input stage ──────────────────────────────────────────────────────────────
+
+const EXAMPLE_PROMPTS = [
+  "Affordable housing lottery for low-to-moderate income NYC residents. Applicants must be 18+, have household income below 80% AMI, and currently live or work in NYC. Need to collect household size, income sources, and accessibility needs.",
+  "Section 8 waitlist application for families with children under 18. Prioritize veterans and people with disabilities. Collect employment history and reason for needing assistance.",
+  "Senior affordable housing for residents 62 and older. Units are ADA accessible. Need income verification, proof of age, and emergency contact.",
+];
+
+function InputStage({
+  value,
+  onChange,
+  onGenerate,
+  textareaRef,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onGenerate: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  return (
+    <main className="mx-auto w-full max-w-3xl px-5 py-12">
+      {/* Header */}
+      <div className="mb-10">
+        <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-[#00285f]">
+          <Sparkles className="h-3.5 w-3.5" />
+          AI Form Generator
+        </div>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-foreground">
+          Describe your program.
+        </h1>
+        <p className="mt-2 max-w-xl text-base text-muted-foreground">
+          Tell us about the benefit program in plain language — who it's for,
+          what the eligibility rules are, and what information you need to
+          collect. We'll turn it into a ready-to-publish applicant form.
+        </p>
+      </div>
+
+      {/* Main input */}
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border px-5 py-3">
+          <label
+            htmlFor="program-desc"
+            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
-        ))}
+            Program description
+          </label>
+        </div>
+        <textarea
+          id="program-desc"
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.metaKey) onGenerate();
+          }}
+          placeholder="Describe the program, who qualifies, what documents or information you need to collect, any income or age limits, priorities for certain groups (veterans, seniors, people with disabilities), and anything else that should appear on the application…"
+          rows={10}
+          className="w-full resize-none rounded-b-xl bg-transparent px-5 py-4 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
+        />
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chat panel */}
-        <div
-          className={`flex flex-col border-r border-border bg-white ${
-            view === "preview"
-              ? "hidden"
-              : view === "split"
-                ? "hidden w-[420px] shrink-0 md:flex"
-                : "flex-1"
-          } ${mobileTab !== "chat" ? "hidden md:flex" : "flex"}`}
+      <div className="mt-4 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Press{" "}
+          <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 text-[11px] font-mono">
+            ⌘ Enter
+          </kbd>{" "}
+          to generate
+        </p>
+        <button
+          onClick={onGenerate}
+          disabled={!value.trim()}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#006cff] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0058d6] disabled:opacity-40"
         >
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="mx-auto max-w-2xl space-y-4">
-              {messages.map((msg, i) => (
-                <ChatBubble key={i} message={msg} />
-              ))}
-              {sending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Thinking…
-                </div>
+          <Sparkles className="h-4 w-4" />
+          Generate form
+        </button>
+      </div>
+
+      {/* Example prompts */}
+      <div className="mt-10">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Examples — click to use
+        </p>
+        <div className="space-y-2">
+          {EXAMPLE_PROMPTS.map((prompt, i) => (
+            <button
+              key={i}
+              onClick={() => onChange(prompt)}
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-secondary/60 hover:text-foreground"
+            >
+              "{prompt.slice(0, 120)}…"
+            </button>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// ── Generating stage ─────────────────────────────────────────────────────────
+
+const GENERATION_STEPS = [
+  "Reading program requirements…",
+  "Identifying required fields…",
+  "Applying eligibility rules…",
+  "Structuring sections and conditional logic…",
+  "Finalising form…",
+];
+
+function GeneratingStage({ description }: { description: string }) {
+  const [stepIdx, setStepIdx] = useState(0);
+
+  useState(() => {
+    const interval = setInterval(() => {
+      setStepIdx((i) => Math.min(i + 1, GENERATION_STEPS.length - 1));
+    }, 420);
+    return () => clearInterval(interval);
+  });
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-5 py-24">
+      <div className="w-full max-w-md text-center">
+        <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-primary/10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Building your form…</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This usually takes a few seconds.
+        </p>
+
+        <div className="mt-8 space-y-2 text-left">
+          {GENERATION_STEPS.map((step, i) => (
+            <div
+              key={step}
+              className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all ${
+                i < stepIdx
+                  ? "text-muted-foreground line-through"
+                  : i === stepIdx
+                    ? "bg-secondary font-semibold text-foreground"
+                    : "text-muted-foreground/40"
+              }`}
+            >
+              {i < stepIdx ? (
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success/20 text-success text-[11px]">
+                  ✓
+                </span>
+              ) : i === stepIdx ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+              ) : (
+                <span className="h-5 w-5 shrink-0" />
               )}
-              <div ref={chatEndRef} />
+              {step}
             </div>
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-border bg-white px-4 py-3">
-            <div className="mx-auto flex max-w-2xl items-end gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe what to change…"
-                rows={1}
-                disabled={sending}
-                className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                style={{
-                  height: "auto",
-                  minHeight: "42px",
-                  maxHeight: "120px",
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "auto";
-                  target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
-                }}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || sending}
-                className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mx-auto mt-1.5 max-w-2xl">
-              <p className="text-[11px] text-muted-foreground">
-                Try: "Add a question about pets" · "Make income required only for
-                employed applicants" · "Add a section for veteran status"
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Preview panel */}
-        <div
-          className={`flex-1 overflow-y-auto bg-gray-50 ${
-            view === "chat"
-              ? "hidden"
-              : ""
-          } ${mobileTab !== "preview" ? "hidden md:block" : "block"}`}
-        >
-          <FormPreview schema={schema} />
+        <div className="mt-8 rounded-lg border border-border bg-card px-4 py-3 text-left text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">Your input: </span>
+          {description.slice(0, 160)}
+          {description.length > 160 ? "…" : ""}
         </div>
       </div>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: FormSchema["status"] }) {
-  const config = {
-    draft: { label: "Draft", cls: "bg-secondary text-muted-foreground" },
-    pending_review: {
-      label: "Pending review",
-      cls: "bg-warning/20 text-warning-foreground",
-    },
-    approved: { label: "Approved", cls: "bg-success/15 text-success" },
-    published: { label: "Published", cls: "bg-primary/15 text-primary" },
-  };
-  const c = config[status];
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${c.cls}`}
-    >
-      {c.label}
-    </span>
-  );
-}
+// ── Preview stage ─────────────────────────────────────────────────────────────
 
-function ChatBubble({ message }: { message: ChatMessage }) {
-  const isUser = message.role === "user";
+function PreviewStage({ schema }: { schema: FormSchema }) {
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "border border-border bg-card text-foreground"
-        }`}
-      >
-        {message.content.split("\n").map((line, i) => (
-          <p key={i} className={i > 0 ? "mt-1.5" : ""}>
-            {line}
-          </p>
-        ))}
+    <div className="flex-1 bg-gray-50">
+      <div className="mx-auto max-w-3xl px-6 py-10">
+        {/* Banner */}
+        <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-success/30 bg-success/8 px-5 py-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-success">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-success/20 text-[11px]">
+                ✓
+              </span>
+              Form generated
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {schema.sections.length} sections ·{" "}
+              {schema.sections.reduce((n, s) => n + s.fields.length, 0)} fields
+              · {schema.sections.reduce((n, s) => n + s.fields.filter(f => f.condition).length, 0)} conditional
+            </p>
+          </div>
+          <button
+            disabled
+            className="inline-flex items-center gap-2 rounded-lg bg-[#006cff]/90 px-4 py-2 text-xs font-bold text-white opacity-60"
+          >
+            Submit for review →
+          </button>
+        </div>
+
+        <FormPreview schema={schema} />
       </div>
     </div>
   );
 }
+
+// ── Form preview ─────────────────────────────────────────────────────────────
 
 function FormPreview({ schema }: { schema: FormSchema }) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     () => new Set(schema.sections.map((s) => s.id)),
   );
   const [formValues, setFormValues] = useState<Record<string, string | string[]>>({});
-
-  useEffect(() => {
-    setExpandedSections(new Set(schema.sections.map((s) => s.id)));
-  }, [schema]);
 
   const toggle = (id: string) => {
     setExpandedSections((prev) => {
@@ -339,32 +320,20 @@ function FormPreview({ schema }: { schema: FormSchema }) {
     const val = formValues[condition.fieldId];
     const strVal = Array.isArray(val) ? val.join(",") : (val ?? "");
     switch (condition.op) {
-      case "eq":
-        return strVal === condition.value;
-      case "neq":
-        return strVal !== condition.value;
-      case "gt":
-        return Number(strVal) > Number(condition.value ?? 0);
-      case "lt":
-        return Number(strVal) < Number(condition.value ?? 0);
-      case "contains":
-        return strVal.includes(condition.value ?? "");
-      case "filled":
-        return strVal.length > 0;
-      default:
-        return true;
+      case "eq": return strVal === condition.value;
+      case "neq": return strVal !== condition.value;
+      case "gt": return Number(strVal) > Number(condition.value ?? 0);
+      case "lt": return Number(strVal) < Number(condition.value ?? 0);
+      case "contains": return strVal.includes(condition.value ?? "");
+      case "filled": return strVal.length > 0;
+      default: return true;
     }
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-[#00285f]">
-          <FileText className="h-3.5 w-3.5" />
-          Live Preview
-        </div>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-foreground">
+    <div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
           {schema.title}
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -372,7 +341,6 @@ function FormPreview({ schema }: { schema: FormSchema }) {
         </p>
       </div>
 
-      {/* Sections */}
       <div className="space-y-4">
         {schema.sections.map((section) => {
           if (!isConditionMet(section.condition)) return null;
@@ -402,8 +370,7 @@ function FormPreview({ schema }: { schema: FormSchema }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {visibleFields.length} field
-                    {visibleFields.length !== 1 ? "s" : ""}
+                    {visibleFields.length} field{visibleFields.length !== 1 ? "s" : ""}
                   </span>
                   {isOpen ? (
                     <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -435,15 +402,14 @@ function FormPreview({ schema }: { schema: FormSchema }) {
         })}
       </div>
 
-      {/* Submit area */}
       <div className="mt-8 rounded-xl border border-border bg-white p-6 shadow-sm">
         <p className="text-sm text-muted-foreground">
-          This is a preview of the applicant-facing form. Changes made in the
-          chat panel will update this preview in real time.
+          This is a preview of the applicant-facing form. Submit for admin
+          review to publish it.
         </p>
         <button
           disabled
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground opacity-60"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-primary-foreground opacity-50"
         >
           Submit Application (Preview Only)
         </button>
@@ -480,6 +446,9 @@ function PreviewField({
     <p className="mt-1 text-xs text-muted-foreground">{field.helpText}</p>
   ) : null;
 
+  const inputCls =
+    "mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
+
   switch (field.type) {
     case "text":
     case "email":
@@ -487,54 +456,34 @@ function PreviewField({
     case "date":
       return (
         <div>
-          {labelEl}
-          {helpEl}
-          <input
-            id={field.id}
-            type={field.type}
-            value={strVal}
+          {labelEl}{helpEl}
+          <input id={field.id} type={field.type} value={strVal}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder}
-            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
+            placeholder={field.placeholder} className={inputCls} />
         </div>
       );
 
     case "number":
       return (
         <div>
-          {labelEl}
-          {helpEl}
-          <input
-            id={field.id}
-            type="number"
-            value={strVal}
+          {labelEl}{helpEl}
+          <input id={field.id} type="number" value={strVal}
             onChange={(e) => onChange(e.target.value)}
-            min={field.validation?.min}
-            max={field.validation?.max}
-            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
+            min={field.validation?.min} max={field.validation?.max}
+            className={inputCls} />
         </div>
       );
 
     case "currency":
       return (
         <div>
-          {labelEl}
-          {helpEl}
+          {labelEl}{helpEl}
           <div className="relative mt-1.5">
-            <span className="absolute left-3 top-2 text-sm text-muted-foreground">
-              $
-            </span>
-            <input
-              id={field.id}
-              type="text"
-              inputMode="numeric"
-              value={strVal}
+            <span className="absolute left-3 top-2 text-sm text-muted-foreground">$</span>
+            <input id={field.id} type="text" inputMode="numeric" value={strVal}
               onChange={(e) => onChange(e.target.value)}
               placeholder="0"
-              className="w-full rounded-md border border-input bg-background py-2 pl-7 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
+              className="w-full rounded-md border border-input bg-background py-2 pl-7 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
           </div>
         </div>
       );
@@ -542,35 +491,22 @@ function PreviewField({
     case "textarea":
       return (
         <div>
-          {labelEl}
-          {helpEl}
-          <textarea
-            id={field.id}
-            value={strVal}
+          {labelEl}{helpEl}
+          <textarea id={field.id} value={strVal}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder}
-            rows={3}
-            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
+            placeholder={field.placeholder} rows={3} className={inputCls} />
         </div>
       );
 
     case "select":
       return (
         <div>
-          {labelEl}
-          {helpEl}
-          <select
-            id={field.id}
-            value={strVal}
-            onChange={(e) => onChange(e.target.value)}
-            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          >
+          {labelEl}{helpEl}
+          <select id={field.id} value={strVal}
+            onChange={(e) => onChange(e.target.value)} className={inputCls}>
             <option value="">Select…</option>
             {field.options?.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </div>
@@ -579,22 +515,14 @@ function PreviewField({
     case "radio":
       return (
         <div>
-          {labelEl}
-          {helpEl}
+          {labelEl}{helpEl}
           <div className="mt-2 space-y-2">
             {field.options?.map((opt) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition hover:bg-secondary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-              >
-                <input
-                  type="radio"
-                  name={field.id}
-                  value={opt.value}
-                  checked={strVal === opt.value}
-                  onChange={() => onChange(opt.value)}
-                  className="accent-primary"
-                />
+              <label key={opt.value}
+                className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition hover:bg-secondary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <input type="radio" name={field.id} value={opt.value}
+                  checked={strVal === opt.value} onChange={() => onChange(opt.value)}
+                  className="accent-primary" />
                 {opt.label}
               </label>
             ))}
@@ -605,27 +533,19 @@ function PreviewField({
     case "checkbox":
       return (
         <div>
-          {labelEl}
-          {helpEl}
+          {labelEl}{helpEl}
           <div className="mt-2 space-y-2">
             {field.options?.map((opt) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition hover:bg-secondary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-              >
-                <input
-                  type="checkbox"
-                  value={opt.value}
+              <label key={opt.value}
+                className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm transition hover:bg-secondary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <input type="checkbox" value={opt.value}
                   checked={arrVal.includes(opt.value)}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      onChange([...arrVal, opt.value]);
-                    } else {
-                      onChange(arrVal.filter((v) => v !== opt.value));
-                    }
+                    onChange(e.target.checked
+                      ? [...arrVal, opt.value]
+                      : arrVal.filter((v) => v !== opt.value));
                   }}
-                  className="accent-primary"
-                />
+                  className="accent-primary" />
                 {opt.label}
               </label>
             ))}
@@ -637,7 +557,7 @@ function PreviewField({
       return (
         <div>
           {labelEl}
-          <p className="mt-1 text-xs text-muted-foreground italic">
+          <p className="mt-1 text-xs italic text-muted-foreground">
             Unsupported field type: {field.type}
           </p>
         </div>
