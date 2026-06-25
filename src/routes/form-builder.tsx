@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   ChevronRight,
   ChevronDown,
-  FileText,
   ArrowLeft,
   Loader2,
   Sparkles,
+  Send,
 } from "lucide-react";
 import {
   HOUSING_CONNECT_TEMPLATE,
@@ -14,6 +14,7 @@ import {
   type FormField,
   type Condition,
 } from "../lib/form-schema";
+import { formBuilderChat, type ChatMessage } from "../lib/form-builder-chat";
 
 export const Route = createFileRoute("/form-builder")({
   head: () => ({
@@ -86,7 +87,7 @@ function FormBuilderPage() {
       )}
 
       {stage === "preview" && schema && (
-        <PreviewStage schema={schema} />
+        <PreviewStage schema={schema} onSchemaChange={setSchema} />
       )}
     </div>
   );
@@ -261,34 +262,153 @@ function GeneratingStage({ description }: { description: string }) {
 
 // ── Preview stage ─────────────────────────────────────────────────────────────
 
-function PreviewStage({ schema }: { schema: FormSchema }) {
+function PreviewStage({ schema, onSchemaChange }: { schema: FormSchema; onSchemaChange: (s: FormSchema) => void }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      content: `Your form is ready! It has ${schema.sections.length} sections and ${schema.sections.reduce((n, s) => n + s.fields.length, 0)} fields.\n\nAsk me to make changes — I can add questions, adjust conditions, reorder sections, or tweak any labels.`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = useCallback(async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setInput("");
+    setSending(true);
+    try {
+      const result = await formBuilderChat({ data: { messages: updated, currentSchema: schema } });
+      setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
+      if (result.updatedSchema) onSchemaChange(result.updatedSchema);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  }, [input, sending, messages, schema, onSchemaChange]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
   return (
-    <div className="flex-1 bg-gray-50">
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        {/* Banner */}
-        <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-success/30 bg-success/8 px-5 py-4">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-success">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-success/20 text-[11px]">
-                ✓
-              </span>
-              Form generated
+    <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 53px)" }}>
+      {/* Form preview — left/main */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="mx-auto max-w-2xl px-6 py-8">
+          {/* Banner */}
+          <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-success/30 bg-success/8 px-5 py-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-success">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-success/20 text-[11px]">✓</span>
+                Form generated
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {schema.sections.length} sections · {schema.sections.reduce((n, s) => n + s.fields.length, 0)} fields · {schema.sections.reduce((n, s) => n + s.fields.filter(f => f.condition).length, 0)} conditional
+              </p>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {schema.sections.length} sections ·{" "}
-              {schema.sections.reduce((n, s) => n + s.fields.length, 0)} fields
-              · {schema.sections.reduce((n, s) => n + s.fields.filter(f => f.condition).length, 0)} conditional
-            </p>
+            <button disabled className="inline-flex items-center gap-2 rounded-lg bg-[#006cff]/90 px-4 py-2 text-xs font-bold text-white opacity-60">
+              Submit for review →
+            </button>
           </div>
-          <button
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg bg-[#006cff]/90 px-4 py-2 text-xs font-bold text-white opacity-60"
-          >
-            Submit for review →
-          </button>
+          <FormPreview schema={schema} />
+        </div>
+      </div>
+
+      {/* Chat copilot — right panel */}
+      <div className="flex w-[360px] shrink-0 flex-col border-l border-border bg-white">
+        {/* Header */}
+        <div className="border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground">Form Copilot</div>
+              <div className="text-[11px] text-muted-foreground">Ask me to refine this form</div>
+            </div>
+          </div>
         </div>
 
-        <FormPreview schema={schema} />
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="space-y-3">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-secondary/40 text-foreground"
+                }`}>
+                  {msg.content.split("\n").map((line, j) => (
+                    <p key={j} className={j > 0 ? "mt-1" : ""}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Thinking…
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        </div>
+
+        {/* Suggestion chips */}
+        {messages.length <= 1 && (
+          <div className="px-4 pb-2">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Add a veteran status question",
+                "Make income conditional on employment",
+                "Add a section for references",
+              ].map((s) => (
+                <button key={s} onClick={() => setInput(s)}
+                  className="rounded-full border border-border bg-secondary/50 px-3 py-1 text-[11px] font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground transition">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="border-t border-border px-3 py-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me to change the form…"
+              rows={1}
+              disabled={sending}
+              className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+              style={{ minHeight: "38px", maxHeight: "100px" }}
+              onInput={(e) => {
+                const t = e.target as HTMLTextAreaElement;
+                t.style.height = "auto";
+                t.style.height = `${Math.min(t.scrollHeight, 100)}px`;
+              }}
+            />
+            <button onClick={sendMessage} disabled={!input.trim() || sending}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-40">
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
